@@ -1069,11 +1069,19 @@ bool SubstraitToVeloxPlanValidator::validate(const ::substrait::JoinRel& joinRel
   auto rowType = std::make_shared<RowType>(std::move(names), std::move(types));
 
   if (joinRel.has_expression()) {
+    if (!validateExpression(joinRel.expression(), rowType)) {
+      LOG_VALIDATION_MSG("Validation fails for join keys expression.");
+      return false;
+    }
     std::vector<const ::substrait::Expression::FieldReference*> leftExprs, rightExprs;
     planConverter_->extractJoinKeys(joinRel.expression(), leftExprs, rightExprs);
   }
 
   if (joinRel.has_post_join_filter()) {
+    if (!validateExpression(joinRel.expression(), rowType)) {
+      LOG_VALIDATION_MSG("Validation fails for join keys expression.");
+      return false;
+    }
     auto expression = exprConverter_->toVeloxExpr(joinRel.post_join_filter(), rowType);
     exec::ExprSet exprSet({std::move(expression)}, execCtx_.get());
   }
@@ -1124,6 +1132,10 @@ bool SubstraitToVeloxPlanValidator::validate(const ::substrait::CrossRel& crossR
   auto rowType = std::make_shared<RowType>(std::move(names), std::move(types));
 
   if (crossRel.has_expression()) {
+    if (!validateExpression(crossRel.expression(), rowType)) {
+      LOG_VALIDATION_MSG("Validation fails for join keys expression.");
+      return false;
+    }
     auto expression = exprConverter_->toVeloxExpr(crossRel.expression(), rowType);
     exec::ExprSet exprSet({std::move(expression)}, execCtx_.get());
   }
